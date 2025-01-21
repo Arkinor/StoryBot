@@ -1,0 +1,14 @@
+{
+    "users": [
+        {
+            "iddiscord": "123456789",
+            "today": 1,
+            "balansemorale": -5
+        },
+        {
+            "iddiscord": "1234567890",
+            "today": 0,
+            "balansemorale": 15
+        }
+    ]
+}
