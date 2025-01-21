@@ -1,14 +1,19 @@
 {
     "users": [
         {
-            "iddiscord": "123456789",
-            "today": 1,
-            "balansemorale": -5
+            "iddiscord": 229665604372660226,
+            "today": 0,
+            "balansemorale": 20
         },
         {
-            "iddiscord": "1234567890",
+            "iddiscord": 395886231285923842,
             "today": 0,
-            "balansemorale": 15
+            "balansemorale": 10
+        },
+        {
+            "iddiscord": 526826940255043594,
+            "today": 0,
+            "balansemorale": -5
         }
     ]
 }
