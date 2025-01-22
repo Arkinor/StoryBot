@@ -3,6 +3,7 @@ import random
 import configparser
 import disnake
 from disnake.ext import commands
+import asyncio
 config = configparser.ConfigParser()
 config.read('config.ini')
 
@@ -35,10 +36,23 @@ async def on_ready():
         print(f"Канал для вывода сообщений бота найден, это: {text_channel.name} id:{text_channel.id} ")
     except:
         print("Канал для вывода не найден, сообщения будут выводиться в консоль!")
+
     print(f'Бот {bot.user} успешно запущен')
     print("Команды бота:")
     for command in bot.all_slash_commands:
         print(f"- {command}")
+
+    # Запуск нового потока для выполнения reset_today_value() каждые 3 часа
+    bot.loop.create_task(reset_value_periodically())
+
+
+async def reset_value_periodically():
+    while True:
+        await reset_today_value()  # Выполнение функции
+        embed = disnake.Embed(title="ТАЙМЕР СБРОШЕН!", description="Сброс таймера. Вы можете повторно запросить историю!", color=0x000000)
+        await text_channel.send(embed=embed)
+        # await asyncio.sleep(3 * 60 * 60)  # Ожидание 3 часа (3 * 60 минут * 60 секунд)
+        await asyncio.sleep(60 * 60)  # Ожидание 1 час (60 минут * 60 секунд)
 
 
     # server_id = 1123685142255390781
@@ -229,7 +243,7 @@ async def handle_command(discord_id):
     if user:
         if user['today'] == 0:
             # Генерация случайного числа для выбора истории
-            story_id = random.randint(0, 50)
+            story_id = random.randint(0, 80)
             story = get_story_by_id(story_id)
             print(f"История с ID {story_id}: {story}")
 
@@ -245,21 +259,24 @@ async def handle_command(discord_id):
             # Определяем цвет embed на основе качества ответа
             embed_color = 0x00FF00 if is_good_answer else 0xFF0000
             # Обновление баланса
+            random_balance = random.randint(0, 10)
             if is_good_answer:
-                user['balansemorale'] += 5  # Добавляем 5 очков морали
+                user['balansemorale'] += random_balance  # Добавляем очки морали
             else:
-                user['balansemorale'] -= 5
-
+                user['balansemorale'] -= random_balance
 
             # Формирование сообщения
             result_message = f"{answer}\n"
-            result_message += f"Ваш текущий баланс морали: {user['balansemorale']}\n"
-
 
 
             # Формирование embed-сообщения
             embed = disnake.Embed(title="Случайная история", description=story, color=embed_color)
             embed.add_field(name="Результат", value=result_message, inline=False)
+
+            # Добавляем информацию о полученных или отнятых очках
+            points_message = f"{'Получено' if is_good_answer else 'Отнято'} **{random_balance}** очков\n"
+            points_message += f"Ваш текущий баланс морали: **{user['balansemorale']}**\n"
+            embed.add_field(name="Очки морали", value=points_message, inline=False)
 
             await text_channel.send(embed=embed)
 
