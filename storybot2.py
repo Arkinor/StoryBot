@@ -10,6 +10,7 @@ config.read('config.ini')
 token = config['Settings']['token']
 audit_chanel = config['Settings']['audit_chanel']
 text_channel = 0 #Переопределяемый id канала для вывода сообщений
+_lastroll = 20
 
 
 # Создаем экземпляр бота с включенным intent для содержимого сообщений
@@ -115,8 +116,8 @@ async def on_message(message):
         user = check_user_in_file(users_data, message.author.id)
 
         # Проверяем, что удача меньше 10
-        if user["lucky"] >= 10:
-            await message.reply("У вас уже максимальное значение удачи (10). Нельзя увеличить удачу больше.")
+        if user["lucky"] >= 15:
+            await message.reply("У вас уже максимальное значение удачи (15). Нельзя увеличить удачу больше.")
             return
 
         # Проверяем, что баланс морали больше или равен 50
@@ -362,6 +363,15 @@ async def handle_command(discord_id):
             spasroll = False;
             # Генерация случайного числа для определения качества ответа
             roll = random.randint(0, 100) + user["lucky"]
+            # защита от критической неудачи
+            global _lastroll
+            if _lastroll <= 10:
+                roll = random.randint(53, 60)
+            _lastroll = roll
+
+            if user['balansemorale'] <= 0:
+                roll = roll + 5
+
             original_roll = roll
             roll_message = f"Вы выбросили значение **{roll}** (с учетом удачи: **{user['lucky']}**)."
             if roll <= 50:
@@ -376,7 +386,7 @@ async def handle_command(discord_id):
 
             print(roll)
             answer_id = random.randint(0, 2)
-            random_balance = random.randint(1, 15)
+            # random_balance = random.randint(1, 15)
 
             if roll == 0:
                 answer = story["neutralanswers"][answer_id]
@@ -385,11 +395,13 @@ async def handle_command(discord_id):
             elif roll > 50:
                 answer = story["goodanswers"][answer_id]
                 embed_color = 0x00FF00
+                random_balance = 15
                 user['balansemorale'] += random_balance  # Добавляем очки морали
                 is_good_answer = True
             else:
                 answer = story["badanswers"][answer_id]
                 embed_color = 0xFF0000
+                random_balance = 10
                 user['balansemorale'] -= random_balance  # Отнимаем очки морали (или можете изменить логику)
                 is_good_answer = False
                 user['badtry'] += 1
