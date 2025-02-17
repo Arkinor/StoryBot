@@ -239,14 +239,15 @@ async def on_message(message):
         while initiator["health_pvp"] > 0 and consumer["health_pvp"] > 0:
             # Бросок на промах для инициатора
             attack_roll_initiator = random.randint(0, 100)
-            if attack_roll_initiator < 5:
+            if attack_roll_initiator < 10:
                 damage_initiator = 0
-                attack_result_initiator = "промахнулся"
+                attack_result_initiator = "**Вы промахнулись при атаке**"
             else:
                 # Бросок атаки
-                damage_initiator = random.randint(15, 100) + initiator["strong"] - consumer["armor"]
+                dps = random.randint(20, 105)
+                damage_initiator = dps + initiator["strong"] - consumer["armor"]
                 consumer["health_pvp"] -= max(damage_initiator, 0)
-                attack_result_initiator = (f"Чистая атака: {random.randint(0, 130)} \n"
+                attack_result_initiator = (f"Чистая атака: {dps} \n"
                                            f"Прибавляем ваше усиление атаки: {initiator['strong']} \n"
                                            f"Вычитаем защиту <@{consumer['iddiscord']}>: {consumer['armor']} \n "
                                            f"Ваш итоговый урон: {max(damage_initiator, 0)} \n"
@@ -254,15 +255,16 @@ async def on_message(message):
 
             # Бросок на промах для защитника
             attack_roll_consumer = random.randint(0, 100)
-            if attack_roll_consumer < 5:
+            if attack_roll_consumer < 10:
                 damage_consumer = 0
-                attack_result_consumer = "промахнулся"
+                attack_result_consumer = "**Вы промахнулись при атаке**"
             else:
                 # Бросок атаки
-                damage_consumer = random.randint(15, 100) + consumer["strong"] - initiator["armor"]
+                dps = random.randint(20, 105)
+                damage_consumer = dps + consumer["strong"] - initiator["armor"]
                 initiator["health_pvp"] -= max(damage_consumer, 0)
 
-                attack_result_consumer = (f"Чистая атака: {random.randint(0, 130)} \n"
+                attack_result_consumer = (f"Чистая атака: {dps} \n"
                                           f"Прибавляем ваше усиление атаки: {consumer['strong']} \n"
                                           f"Вычитаем защиту <@{initiator['iddiscord']}>: {initiator['armor']} \n"
                                           f"Итоговый урон: {max(damage_consumer, 0)} \n"
@@ -425,8 +427,6 @@ async def clearbalanse():
 
     save_users(users_data)  # Сохраняем изменения
 
-async def pvp(message, ds_id_Initiator, ds_id_consumer):
-    pass
 
 # Обработка запроса на команду story
 async def handle_command(discord_id):
