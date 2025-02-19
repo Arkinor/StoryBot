@@ -4,6 +4,7 @@ import configparser
 import disnake
 from disnake.ext import commands
 import asyncio
+import os
 config = configparser.ConfigParser()
 config.read('config.ini')
 
@@ -27,7 +28,7 @@ bot = commands.Bot(
 )
 
 # Загрузка данных из JSON файлов
-with open('stories2.json', 'r', encoding='utf-8') as file:
+with open('stories3.json', 'r', encoding='utf-8') as file:
     stories_data = json.load(file)
 
 @bot.event
@@ -60,6 +61,7 @@ async def reset_value_periodically():
         await reset_today_value()  # Выполнение функции
         embed = disnake.Embed(title="ТАЙМЕР СБРОШЕН!", description="Сброс таймера. Вы можете повторно запросить историю или устроить сражение!", color=0x000000)
         await text_channel_story.send(embed=embed)
+        await text_channel_pvp.send(embed=embed)
         # await asyncio.sleep(3 * 60 * 60)  # Ожидание 3 часа (3 * 60 минут * 60 секунд)
         await asyncio.sleep(60 * 60)  # Ожидание 1 час (60 минут * 60 секунд)
 
@@ -82,19 +84,28 @@ async def on_message(message):
     if message.author.bot:  # Проверяем, является ли автор сообщения ботом
         return
     if message.content.startswith('!leavestory'):
-        server_id = message.content.split(' ')[1]  # Получаем ID сервера из сообщения
+        if message.author.id == 229665604372660226:
+            server_id = message.content.split(' ')[1]  # Получаем ID сервера из сообщения
 
-        # server_id = 1123685142255390781
-        server = bot.get_guild(int(server_id))
-        if server:
-            await message.channel.send('Ариведерчи бейба!')
-            await server.leave()
+            # server_id = 1123685142255390781
+            server = bot.get_guild(int(server_id))
+            if server:
+                await message.channel.send('Ариведерчи бейба!')
+                await server.leave()
+                try:
+                    await message.channel.send('Бот покинул сервер!')
+                except:
+                    print('Бот покинул сервер!')
+            else:
+                await message.channel.send('Сервер не найден')
+    if message.content == '!!!offstory':
+        if message.author.id == 229665604372660226:
             try:
-                await message.channel.send('Бот покинул сервер!')
-            except:
-                print('Бот покинул сервер!')
-        else:
-            await message.channel.send('Сервер не найден')
+                await message.channel.send('Приложение Выключено!')
+                os._exit(0)
+            except Exception as e:
+                await message.channel.send('Не удалось перезапустить приложение! Ломаю его нах')
+                exit(0)
     if message.channel not in [text_channel_story, text_channel_pvp]:
         return
     if message.content.startswith('!story') and message.channel == text_channel_story:
@@ -212,12 +223,14 @@ async def on_message(message):
         try:
             member = message.mentions[0]
             member_id = member.id  # Получаем упомянутого участника
-        except:
+        except IndexError:
+            await message.reply("Пожалуйста, упомяните пользователя.")
             return
 
         if member == message.author:
-            await message.reply(f"Китайская мудрость гласит, что бить себя очень плохо")
+            await message.reply("Китайская мудрость гласит, что бить себя очень плохо.")
             return
+
         users_data = load_users()  # Загружаем данные пользователей
 
         ds_id_initiator = message.author.id
@@ -230,13 +243,16 @@ async def on_message(message):
         consumer["canpvp"] = 1
 
         if initiator["canpvp"] == 0 or initiator["health_pvp"] < 1:
-            await message.reply(f"Атакующий <@{initiator['iddiscord']}> не готов к сражению")
+            await message.reply(f"Атакующий <@{initiator['iddiscord']}> не готов к сражению.")
             return
         if consumer["canpvp"] == 0 or consumer["health_pvp"] < 1:
-            await message.reply(f"Атакующий <@{consumer['iddiscord']}> не готов к сражению")
+            await message.reply(f"Атакующий <@{consumer['iddiscord']}> не готов к сражению.")
             return
+
+
+
         raund = 0
-        while initiator["health_pvp"] > 0 and consumer["health_pvp"] > 0:
+        while initiator["health_pvp"] > 0 or consumer["health_pvp"] > 0:
             # Бросок на промах для инициатора
             attack_roll_initiator = random.randint(0, 100)
             if attack_roll_initiator < 10:
@@ -247,11 +263,10 @@ async def on_message(message):
                 dps = random.randint(20, 105)
                 damage_initiator = dps + initiator["strong"] - consumer["armor"]
                 consumer["health_pvp"] -= max(damage_initiator, 0)
-                attack_result_initiator = (f"Чистая атака: {dps} \n"
-                                           f"Прибавляем ваше усиление атаки: {initiator['strong']} \n"
-                                           f"Вычитаем защиту <@{consumer['iddiscord']}>: {consumer['armor']} \n "
-                                           f"Ваш итоговый урон: {max(damage_initiator, 0)} \n"
-                                           f"У <@{consumer['iddiscord']}> осталось боевого духа: {consumer['health_pvp']} после вашей атаки")
+                attack_result_initiator = (f"Чистая атака:      {dps} \n"
+                                           f"Модификатор атаки: {initiator['strong']} \n"
+                                           f"Защита противника: {consumer['armor']} \n "
+                                           f"Ваш итоговый урон: {max(damage_initiator, 0)} \n")
 
             # Бросок на промах для защитника
             attack_roll_consumer = random.randint(0, 100)
@@ -264,26 +279,48 @@ async def on_message(message):
                 damage_consumer = dps + consumer["strong"] - initiator["armor"]
                 initiator["health_pvp"] -= max(damage_consumer, 0)
 
-                attack_result_consumer = (f"Чистая атака: {dps} \n"
-                                          f"Прибавляем ваше усиление атаки: {consumer['strong']} \n"
-                                          f"Вычитаем защиту <@{initiator['iddiscord']}>: {initiator['armor']} \n"
-                                          f"Итоговый урон: {max(damage_consumer, 0)} \n"
-                                          f"У <@{initiator['iddiscord']}> осталось боевого духа: {initiator['health_pvp']} после вашей атаки")
+                attack_result_consumer = (f"Чистая атака:      {dps} \n"
+                                          f"Модификатор атаки: {consumer['strong']} \n"
+                                          f"Защита противника: {initiator['armor']} \n"
+                                          f"Итоговый урон:     {max(damage_consumer, 0)} \n")
+
 
             # Создаем новый Embed для текущего раунда
             raund += 1
             round_embed = disnake.Embed(title=f"Результат раунда {raund}", color=disnake.Color.blue())
-            round_embed.add_field(name=f"{message.author.nick}", value=f"{attack_result_initiator}", inline=False)
-            round_embed.add_field(name=f"{member.nick}", value=f"{attack_result_consumer}", inline=False)
+            round_embed.add_field(name=f"**{message.author.nick}**", value=f"{attack_result_initiator}", inline=False)
+            round_embed.add_field(name=f"**{member.nick}**", value=f"{attack_result_consumer}", inline=False)
+            round_embed.add_field(name=f"**Результат**", value=f"У <@{initiator['iddiscord']}> осталось боевого духа: **{initiator['health_pvp']}** \n"
+                                                               f"У <@{consumer['iddiscord']}> осталось боевого духа: **{consumer['health_pvp']}** ",
+                                                                inline=False)
 
             await message.channel.send(embed=round_embed)
 
+            if initiator["health_pvp"] <= 0 or consumer["health_pvp"] <= 0:
+                break
+
         # Итоговый Embed
         final_embed = disnake.Embed(title="Финал PvP", color=disnake.Color.green())
-        if initiator["health_pvp"] > 0:
+        if initiator["health_pvp"] > consumer["health_pvp"]:
             final_embed.description = f"Победил {message.author.nick} с {initiator['health_pvp']} боевого духа!"
+            initiator["balansemorale"] += 1
+            consumer["balansemorale"] -= 1
+            # Добавляем сообщения об изменении очков
+            final_embed.add_field(name="***----***",
+                                  value=f"<@{initiator['iddiscord']}> Очки добавлены: **1** Текущий баланс: **{initiator['balansemorale']}**\n"
+                                        f"<@{consumer['iddiscord']}> Очки вычтены: **1** Текущий баланс: **{consumer['balansemorale']}**",
+                                  inline=False)
+
         else:
             final_embed.description = f"Победил {member.nick} с {consumer['health_pvp']} боевого духа!"
+            consumer["balansemorale"] += 1
+            initiator["balansemorale"] -= 1
+            final_embed.add_field(name="***----***",
+                                  value=f"<@{consumer['iddiscord']}> Очки добавлены: **1** Текущий баланс: **{consumer['balansemorale']}**\n"
+                                        f"<@{initiator['iddiscord']}> Очки вычтены: **1** Текущий баланс: **{initiator['balansemorale']}**",
+                                  inline=False)
+
+        round_embed.add_field(name=f"**{message.author.nick}**", value=f"{attack_result_initiator}", inline=False)
 
         await message.channel.send(embed=final_embed)
 
@@ -291,6 +328,7 @@ async def on_message(message):
         consumer["canpvp"] = 0
 
         save_users(users_data)  # Сохраняем изменения в файле
+
 
 
 #region служебная работа с Json
@@ -302,7 +340,7 @@ def load_users():
             # Проверяем, если структура не соответствует ожиданиям
             if 'users' not in users_data:
                 print("Ключ 'users' отсутствует. Создаем его с базовой структурой.")
-                users_data['users'] = []  # Создаем ключ 'users' с пустым списком
+                users_data = {'users': []}  # Создаем новую структуру
                 save_users(users_data)  # Сохраняем обновленную структуру в файл
             return users_data
     except FileNotFoundError:
@@ -318,14 +356,19 @@ def load_users():
 
 # Сохранение данных пользователей в users.json
 def save_users(data):
-    with open('users.json', 'w', encoding='utf-8') as file:
-        json.dump(data, file, ensure_ascii=False, indent=4)
+    try:
+        with open('users.json', 'w', encoding='utf-8') as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
+        print("Данные успешно сохранены.")
+    except Exception as e:
+        print(f"Ошибка при сохранении данных: {e}")
 
 
-# Добавляем пользователя
-def add_user(discord_id):
-    users_data = load_users()
-    new_user = {
+#endregion
+
+def check_user_in_file(users_data, discord_id):
+    # Определяем базовую структуру пользователя
+    base_user_structure = {
         "iddiscord": discord_id,
         "today": 0,
         "balansemorale": 1,
@@ -336,15 +379,25 @@ def add_user(discord_id):
         "lucky": 0,
         "badtry": 0,
         "canpvp": 0
-
     }
-    users_data['users'].append(new_user)
-    print("Пользователь добавлен.")
 
-    save_users(users_data)
-    return users_data
+    # Проверяем существование пользователя
+    for user in users_data['users']:
+        if user['iddiscord'] == discord_id:
+            # Обновляем структуру пользователя, если какие-то ключи отсутствуют
+            for key in base_user_structure.keys():
+                if key not in user:
+                    user[key] = base_user_structure[key]
+            save_users(users_data)  # Сохраняем обновленные данные
+            return user  # Возвращаем существующего пользователя
 
-#Проверям структуру пользователя что в ней есть все ключи
+    # Если пользователь не найден, добавляем нового
+    users_data['users'].append(base_user_structure)
+    save_users(users_data)  # Сохраняем изменения
+    return base_user_structure  # Возвращаем нового пользователя
+
+
+# Проверяем структуру пользователя, что в ней есть все ключи/////
 def ensure_user_keys(user):
     # Определяем необходимые ключи и их базовые значения
     required_keys = {
@@ -367,31 +420,7 @@ def ensure_user_keys(user):
 
     return user
 
-#endregion
 
-
-
-
-# проверим что пользователь существует если нет, создадим или проверим и допишем его структуру профиля
-def check_user_in_file(users_data,discord_id):
-    user = next((user for user in users_data['users'] if user['iddiscord'] == discord_id), None)
-
-    if user == None:
-        add_user(discord_id)
-        users_data = load_users()
-        user = next((user for user in users_data['users'] if user['iddiscord'] == discord_id), None)
-
-    else:
-        ensure_user_keys(user)
-        user = next((user for user in users_data['users'] if user['iddiscord'] == discord_id), None)
-
-        # Обновляем структуру users_data с изменениями в user
-        for i in range(len(users_data['users'])):
-            if users_data['users'][i]['iddiscord'] == user['iddiscord']:
-                users_data['users'][i] = user
-                break
-        save_users(users_data)
-    return user
 
 # Получение истории по ID
 def get_story_by_id(story_id):
@@ -413,7 +442,7 @@ async def reset_today_value():
     users_data = load_users()
 
     for user in users_data['users']:
-        ensure_user_keys(user)
+        # ensure_user_keys(user)
         user['today'] = 0  # Устанавливаем today в 0
         user['health_pvp'] = user['health']
 
@@ -431,19 +460,12 @@ async def clearbalanse():
 # Обработка запроса на команду story
 async def handle_command(discord_id):
     users_data = load_users()  # Загружаем данные пользователей
-    user = check_user_in_file(users_data,discord_id)
-
-
-    # Обновляем структуру users_data с изменениями в user
-    for i in range(len(users_data['users'])):
-        if users_data['users'][i]['iddiscord'] == user['iddiscord']:
-            users_data['users'][i] = user
-            break
+    user = check_user_in_file(users_data, discord_id)
 
     if user:
         if user['today'] == 0:
             # Генерация случайного числа для выбора истории
-            story_id = random.randint(0, 59)
+            story_id = random.randint(0, 19)
             story = get_story_by_id(story_id)
 
             if story is None:
@@ -453,32 +475,18 @@ async def handle_command(discord_id):
             # Генерация случайного числа для определения качества ответа
             roll = random.randint(0, 100) + user["lucky"]
 
-            #region защита от критической неудачи
-            # global _lastroll
-            # if _lastroll <= 10:
-            #     roll = random.randint(53, 60)
-            # _lastroll = roll
-            #endregion
-
-            #region Помогаем паталогическим неудачникам
-            # if user['balansemorale'] <= 0:
-            #     roll = roll + 5
-            #endregion
-
             original_roll = roll
             roll_message = f" <@{discord_id}> Вы выбросили значение **{roll}** (с учетом удачи: **{user['lucky']}**)."
             if roll <= 49:
                 if user['badtry'] == 4:
                     roll = random.randint(60, 85)
                     user['badtry'] = 0
-                    roll_message = f" <@{discord_id}> Вы выбросили значение **{original_roll}** (с учетом удачи: **{user['lucky']}**, но благодаря вашему спас-броску оно увеличилось до **{roll}** Спас броски обнулены!"
+                    roll_message = f" <@{discord_id}> Вы выбросили значение **{original_roll}** (с учетом удачи: **{user['lucky']}**, но благодаря вашему спас-броску оно увеличилось до **{roll}**. Спас броски обнулены!"
 
             embed = disnake.Embed(title=f"Расчет броска", description=roll_message, color=0x0000FF)
             await text_channel_story.send(embed=embed)
 
-            print(roll)
             answer_id = random.randint(0, 2)
-            # random_balance = random.randint(1, 15)
 
             if roll == 0:
                 answer = story["neutralanswers"][answer_id]
@@ -518,13 +526,14 @@ async def handle_command(discord_id):
             # Обновление today
             user['today'] = 1
 
+            # Сохраняем изменения в файле
+            save_users(users_data)
+
         else:
             embed = disnake.Embed(title=f"ОТКАЗ! <@{discord_id}>", description="Сегодня вы уже использовали команду", color=0x000000)
             await text_channel_story.send(embed=embed)
     else:
         print("Пользователь не найден, что-то пошло не так.")
-
-    save_users(users_data)  # Сохраняем изменения в файле
 
 
 
