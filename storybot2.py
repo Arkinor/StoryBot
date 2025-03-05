@@ -133,6 +133,7 @@ async def on_message(message):
         embed.add_field(name="Баланс морали (balansemorale)", value=user['balansemorale'], inline=False)
         embed.add_field(name="Броня (armor)", value=user['armor'], inline=False)
         embed.add_field(name="Сила (strong)", value=user['strong'], inline=False)
+        embed.add_field(name="Ловкость (agility)", value=user['agility'], inline=False)
         embed.add_field(name="Здоровье (health)", value=user['health'], inline=False)
         embed.add_field(name="Боевой дух (health_pvp)", value=user['health_pvp'], inline=False)
         embed.add_field(name="Удача (lucky)", value=user['lucky'], inline=False)
@@ -199,6 +200,27 @@ async def on_message(message):
 
         # Сохраняем изменения
         save_users(users_data)
+
+    if message.content.startswith("!buyagility"):
+        users_data = load_users()  # Загружаем данные пользователей
+        user = check_user_in_file(users_data, message.author.id)
+
+
+        if user["agility"] >= 15:
+            await message.reply("У вас уже максимальное значение ловкости (15). Нельзя увеличить ловкость больше.")
+            return
+
+
+        if user['balansemorale'] >= 50:
+            user['balansemorale'] -= 50
+            user['agility'] += 1  #
+            await message.reply(
+                f"Ваша сила увеличена до {user['agility']}! Баланс морали теперь {user['balansemorale']}.")
+        else:
+            await message.reply("Недостаточно очков морали для увеличения ловкости. Вам нужно как минимум 50 очков.")
+
+        # Сохраняем изменения
+        save_users(users_data)
     if message.content.startswith('!buyhealth'):
         users_data = load_users()  # Загружаем данные пользователей
         user = check_user_in_file(users_data, message.author.id)
@@ -246,7 +268,7 @@ async def on_message(message):
             await message.reply(f"Атакующий <@{initiator['iddiscord']}> не готов к сражению.")
             return
         if consumer["canpvp"] == 0 or consumer["health_pvp"] < 1:
-            await message.reply(f"Атакующий <@{consumer['iddiscord']}> не готов к сражению.")
+            await message.reply(f"Защищающийся <@{consumer['iddiscord']}> не готов к сражению.")
             return
 
 
@@ -255,35 +277,48 @@ async def on_message(message):
         while initiator["health_pvp"] > 0 or consumer["health_pvp"] > 0:
             # Бросок на промах для инициатора
             attack_roll_initiator = random.randint(0, 100)
-            if attack_roll_initiator < 10:
+            attack_roll_initiator += initiator['agility']
+            if attack_roll_initiator < 35:
                 damage_initiator = 0
-                attack_result_initiator = "**Вы промахнулись при атаке**"
+                attack_result_initiator = (f"Ваш боевой дух: {initiator['health_pvp']} \n "
+                                          f"Ваша ловкость: {initiator['agility']} \n "
+                                          f"**Вы промахнулись при атаке**\n")
             else:
                 # Бросок атаки
                 dps = random.randint(20, 105)
                 damage_initiator = dps + initiator["strong"] - consumer["armor"]
-                consumer["health_pvp"] -= max(damage_initiator, 0)
                 attack_result_initiator = (f"Чистая атака:      {dps} \n"
-                                           f"Модификатор атаки: {initiator['strong']} \n"
+                                           f"Ваш модификатор атаки: {initiator['strong']} \n"
                                            f"Защита противника: {consumer['armor']} \n "
+                                           f"Ваш боевой дух: {initiator['health_pvp']} \n "
+                                           f"Ваша ловкость: {initiator['agility']} \n "
                                            f"Ваш итоговый урон: {max(damage_initiator, 0)} \n")
+
+
 
             # Бросок на промах для защитника
             attack_roll_consumer = random.randint(0, 100)
-            if attack_roll_consumer < 10:
+            attack_roll_consumer += initiator['agility']
+            if attack_roll_consumer < 35:
                 damage_consumer = 0
-                attack_result_consumer = "**Вы промахнулись при атаке**"
+                attack_result_consumer = (f"Ваш боевой дух: {consumer['health_pvp']} \n "
+                                          f"Ваша ловкость: {consumer['agility']} \n "
+                                          f"**Вы промахнулись при атаке**\n")
             else:
                 # Бросок атаки
-                dps = random.randint(20, 105)
+                dps = random.randint(40, 130)
                 damage_consumer = dps + consumer["strong"] - initiator["armor"]
-                initiator["health_pvp"] -= max(damage_consumer, 0)
+
 
                 attack_result_consumer = (f"Чистая атака:      {dps} \n"
-                                          f"Модификатор атаки: {consumer['strong']} \n"
+                                          f"Ваш модификатор атаки: {consumer['strong']} \n"
                                           f"Защита противника: {initiator['armor']} \n"
+                                          f"Ваш боевой дух: {consumer['health_pvp']} \n "
+                                          f"Ваша ловкость: {consumer['agility']} \n "
                                           f"Итоговый урон:     {max(damage_consumer, 0)} \n")
 
+            consumer["health_pvp"] -= max(damage_initiator, 0)
+            initiator["health_pvp"] -= max(damage_consumer, 0)
 
             # Создаем новый Embed для текущего раунда
             raund += 1
@@ -324,8 +359,8 @@ async def on_message(message):
 
         await message.channel.send(embed=final_embed)
 
-        initiator["canpvp"] = 0
-        consumer["canpvp"] = 0
+        # initiator["canpvp"] = 0
+        # consumer["canpvp"] = 0
 
         save_users(users_data)  # Сохраняем изменения в файле
 
@@ -376,6 +411,7 @@ def check_user_in_file(users_data, discord_id):
         "strong": 0,
         "health": 100,
         "health_pvp": 100,
+        "agility": 0,
         "lucky": 0,
         "badtry": 0,
         "canpvp": 0
@@ -408,6 +444,7 @@ def ensure_user_keys(user):
         "strong": 0,
         "health": 100,
         "health_pvp": 100,
+        "agility": 0,
         "lucky": 0,
         "badtry": 0,
         "canpvp": 0
