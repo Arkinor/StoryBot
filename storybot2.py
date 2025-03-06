@@ -3,6 +3,7 @@ import random
 import configparser
 import disnake
 from disnake.ext import commands
+from disnake import Button, ActionRow
 import asyncio
 import os
 config = configparser.ConfigParser()
@@ -109,8 +110,99 @@ async def on_message(message):
     if message.channel not in [text_channel_story, text_channel_pvp]:
         return
     if message.content.startswith('!story') and message.channel == text_channel_story:
-        await message.reply("Вы запросили историю!")
-        await handle_command(message.author.id)
+        # await message.reply("Вы запросили историю!")
+        discord_id = message.author.id
+        users_data = load_users()  # Загружаем данные пользователей
+        user = check_user_in_file(users_data, discord_id)
+
+        if user:
+            if user['today'] == 0:
+                # Генерация случайного числа для выбора истории
+                story_id = random.randint(0, 19)
+                story = get_story_by_id(story_id)
+
+                if story is None:
+                    print(f"История с ID {story_id} не найдена.")
+                    return
+
+                # Генерация случайного числа для определения качества ответа
+                roll = random.randint(0, 100) + user["lucky"]
+
+                original_roll = roll
+                roll_message = f" <@{discord_id}> Вы выбросили значение **{roll}** (с учетом удачи: **{user['lucky']}**)."
+                if roll <= 49:
+                    if user['badtry'] == 4:
+                        roll = random.randint(60, 85)
+                        user['badtry'] = 0
+                        roll_message = f" <@{discord_id}> Вы выбросили значение **{original_roll}** (с учетом удачи: **{user['lucky']}**, но благодаря вашему спас-броску оно увеличилось до **{roll}**. Спас броски обнулены!"
+
+                embed = disnake.Embed(title=f"Расчет броска", description=roll_message, color=0x0000FF)
+                await message.reply(embed=embed)
+
+                answer_id = random.randint(0, 2)
+
+                if roll == 0:
+                    answer = story["neutralanswers"][answer_id]
+                    embed_color = 0xFFFFFF
+                    random_balance = 0
+                    is_good_answer = False
+                elif roll > 50:
+                    answer = story["goodanswers"][answer_id]
+                    embed_color = 0x00FF00
+                    random_balance = random.randint(13, 17)
+                    user['balansemorale'] += random_balance  # Добавляем очки морали
+                    is_good_answer = True
+                else:
+                    answer = story["badanswers"][answer_id]
+                    embed_color = 0xFF0000
+                    random_balance = random.randint(10, 17)
+                    user['balansemorale'] -= random_balance  # Отнимаем очки морали
+                    is_good_answer = False
+                    user['badtry'] += 1
+
+                # Формирование сообщения
+                result_message = f"{answer}\n"
+
+                # Формирование embed-сообщения
+                embed = disnake.Embed(title=f"Случайная история", description=f"<@{discord_id}>" + story["text"],
+                                      color=embed_color)
+                embed.add_field(name="Результат", value=result_message, inline=False)
+
+                # Добавляем информацию о полученных или отнятых очках
+                points_message = f"{'Получено' if is_good_answer else 'Отнято'} **{random_balance}** очков\n"
+                points_message += f"Ваш текущий баланс морали: **{user['balansemorale']}**\n"
+                embed.add_field(name="Очки морали", value=points_message, inline=False)
+
+                embed.add_field(name="Автор истории", value=story["Author"], inline=False)
+
+                # Создаем кнопки
+                buttonprofile = disnake.ui.Button(label="Мой профиль", style=disnake.ButtonStyle.green,
+                                            custom_id=f"{message.id}_{discord_id}_buttonprofile")
+                # button2 = disnake.ui.Button(label="", style=disnake.ButtonStyle.red,
+                #                             custom_id=f"{discord_id}_button2")
+
+                # Создаем представление с кнопками
+                view = disnake.ui.View()
+                view.add_item(buttonprofile)
+                # view.add_item(button2)
+
+
+                # Отправляем embed с кнопками
+                await message.reply(embed=embed, view=view)
+
+                # Обновление today
+                user['today'] = 1
+
+                # Сохраняем изменения в файле
+                save_users(users_data)
+
+            else:
+                embed = disnake.Embed(title=f"ОТКАЗ!",
+                                      description=f"<@{discord_id}> Сегодня вы уже использовали команду", color=0x000000)
+                await message.reply(embed=embed)
+        else:
+            print("Пользователь не найден, что-то пошло не так.")
+
     if message.content.startswith('!cleartoday'):
         if message.author.id == 229665604372660226:
             await reset_today_value()
@@ -119,28 +211,28 @@ async def on_message(message):
         if message.author.id == 229665604372660226:
             await clearbalanse()
             await message.reply("Баланс обнулен!")
-    if message.content.startswith('!me'):
-        users_data = load_users()  # Загружаем данные пользователей
-        user = check_user_in_file(users_data, message.author.id)
-
-        # Создаем embed-сообщение
-        embed = disnake.Embed(title="Информация о пользователе", color=0x00FF00)
-
-        # Добавляем поля с информацией о пользователе с стандартными названиями ключей
-        embed.add_field(name="ID Discord", value=user['iddiscord'], inline=False)
-        allowed_message = "Да" if user['today'] == 0 else "Нет"
-        embed.add_field(name="Разрешено запросить историю", value=allowed_message, inline=False)
-        embed.add_field(name="Баланс морали (balansemorale)", value=user['balansemorale'], inline=False)
-        embed.add_field(name="Броня (armor)", value=user['armor'], inline=False)
-        embed.add_field(name="Сила (strong)", value=user['strong'], inline=False)
-        embed.add_field(name="Ловкость (agility)", value=user['agility'], inline=False)
-        embed.add_field(name="Здоровье (health)", value=user['health'], inline=False)
-        embed.add_field(name="Боевой дух (health_pvp)", value=user['health_pvp'], inline=False)
-        embed.add_field(name="Удача (lucky)", value=user['lucky'], inline=False)
-        embed.add_field(name="Неудачные попытки", value=user['badtry'], inline=False)
-
-        # Отправляем embed-сообщение в канал
-        await message.reply(embed=embed)
+    # if message.content.startswith('!me'):
+    #     users_data = load_users()  # Загружаем данные пользователей
+    #     user = check_user_in_file(users_data, message.author.id)
+    #
+    #     # Создаем embed-сообщение
+    #     embed = disnake.Embed(title="Информация о пользователе", color=0x00FF00)
+    #
+    #     # Добавляем поля с информацией о пользователе с стандартными названиями ключей
+    #     embed.add_field(name="ID Discord", value=user['iddiscord'], inline=False)
+    #     allowed_message = "Да" if user['today'] == 0 else "Нет"
+    #     embed.add_field(name="Разрешено запросить историю", value=allowed_message, inline=False)
+    #     embed.add_field(name="Баланс морали (balansemorale)", value=user['balansemorale'], inline=False)
+    #     embed.add_field(name="Броня (armor)", value=user['armor'], inline=False)
+    #     embed.add_field(name="Сила (strong)", value=user['strong'], inline=False)
+    #     embed.add_field(name="Ловкость (agility)", value=user['agility'], inline=False)
+    #     embed.add_field(name="Здоровье (health)", value=user['health'], inline=False)
+    #     embed.add_field(name="Боевой дух (health_pvp)", value=user['health_pvp'], inline=False)
+    #     embed.add_field(name="Удача (lucky)", value=user['lucky'], inline=False)
+    #     embed.add_field(name="Неудачные попытки", value=user['badtry'], inline=False)
+    #
+    #     # Отправляем embed-сообщение в канал
+    #     await message.reply(embed=embed)
     if message.content.startswith('!buylucky'):
         users_data = load_users()  # Загружаем данные пользователей
         user = check_user_in_file(users_data, message.author.id)
@@ -200,7 +292,6 @@ async def on_message(message):
 
         # Сохраняем изменения
         save_users(users_data)
-
     if message.content.startswith("!buyagility"):
         users_data = load_users()  # Загружаем данные пользователей
         user = check_user_in_file(users_data, message.author.id)
@@ -278,7 +369,7 @@ async def on_message(message):
             # Бросок на промах для инициатора
             attack_roll_initiator = random.randint(0, 100)
             attack_roll_initiator += initiator['agility']
-            if attack_roll_initiator < 35:
+            if attack_roll_initiator < 25:
                 damage_initiator = 0
                 attack_result_initiator = (f"Ваш боевой дух: {initiator['health_pvp']} \n "
                                           f"Ваша ловкость: {initiator['agility']} \n "
@@ -299,7 +390,7 @@ async def on_message(message):
             # Бросок на промах для защитника
             attack_roll_consumer = random.randint(0, 100)
             attack_roll_consumer += initiator['agility']
-            if attack_roll_consumer < 35:
+            if attack_roll_consumer < 25:
                 damage_consumer = 0
                 attack_result_consumer = (f"Ваш боевой дух: {consumer['health_pvp']} \n "
                                           f"Ваша ловкость: {consumer['agility']} \n "
@@ -359,10 +450,54 @@ async def on_message(message):
 
         await message.channel.send(embed=final_embed)
 
-        # initiator["canpvp"] = 0
-        # consumer["canpvp"] = 0
+        initiator["canpvp"] = 0
+        consumer["canpvp"] = 0
 
         save_users(users_data)  # Сохраняем изменения в файле
+
+
+@bot.event
+async def on_button_click(interaction: disnake.MessageInteraction):
+    message_id = interaction.data['custom_id'].split('_')[0]  # Получаем ID сообщения, на которое был ответ
+    message = await interaction.channel.fetch_message(message_id)
+    discord_id = interaction.data['custom_id'].split('_')[1]  # Получаем ID пользователя из custom_id
+    button_name = interaction.data['custom_id'].split('_')[2]  # Получаем имя кнопки из custom_id
+
+
+
+    if interaction.user.id == int(discord_id):  # Проверяем, что нажал тот, кому адресован embed
+        # await interaction.response.send_message(f"Вы нажали {button_name}!", ephemeral=True)
+        profile = await get_profile(message)
+        print(f"нажатие на кнопку {button_name}")
+        await interaction.response.send_message(embed=profile, ephemeral=True)
+
+    else:
+        await interaction.response.send_message("Эта кнопка не для вас!", ephemeral=True)
+
+
+
+async def get_profile(message):
+    users_data = load_users()  # Загружаем данные пользователей
+    user = check_user_in_file(users_data, message.author.id)
+
+    # Создаем embed-сообщение
+    embed = disnake.Embed(title="Информация о пользователе", color=0x00FF00)
+
+    # Добавляем поля с информацией о пользователе с стандартными названиями ключей
+    embed.add_field(name="ID Discord", value=user['iddiscord'], inline=False)
+    allowed_message = "Да" if user['today'] == 0 else "Нет"
+    embed.add_field(name="Разрешено запросить историю", value=allowed_message, inline=False)
+    embed.add_field(name="Баланс морали (balansemorale)", value=user['balansemorale'], inline=False)
+    embed.add_field(name="Броня (armor)", value=user['armor'], inline=False)
+    embed.add_field(name="Сила (strong)", value=user['strong'], inline=False)
+    embed.add_field(name="Ловкость (agility)", value=user['agility'], inline=False)
+    embed.add_field(name="Здоровье (health)", value=user['health'], inline=False)
+    embed.add_field(name="Боевой дух (health_pvp)", value=user['health_pvp'], inline=False)
+    embed.add_field(name="Удача (lucky)", value=user['lucky'], inline=False)
+    embed.add_field(name="Неудачные попытки", value=user['badtry'], inline=False)
+
+    # Отправляем embed-сообщение в канал
+    return embed
 
 
 
@@ -481,6 +616,8 @@ async def reset_today_value():
     for user in users_data['users']:
         # ensure_user_keys(user)
         user['today'] = 0  # Устанавливаем today в 0
+        if user['health'] > 150:
+            user['health'] = 150
         user['health_pvp'] = user['health']
 
     save_users(users_data)  # Сохраняем изменения
@@ -557,6 +694,11 @@ async def handle_command(discord_id):
             embed.add_field(name="Очки морали", value=points_message, inline=False)
 
             embed.add_field(name="Автор истории", value=story["Author"], inline=False)
+
+            # Создаем кнопки
+            button1 = Button(label="Кнопка 1", custom_id="button1")
+            button2 = Button(label="Кнопка 2", custom_id="button2")
+
 
             await text_channel_story.send(embed=embed)
 
