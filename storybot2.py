@@ -305,7 +305,7 @@ async def on_message(message):
             user['balansemorale'] -= 50
             user['agility'] += 1  #
             await message.reply(
-                f"Ваша сила увеличена до {user['agility']}! Баланс морали теперь {user['balansemorale']}.")
+                f"Ваша Ловкость увеличена до {user['agility']}! Баланс морали теперь {user['balansemorale']}.")
         else:
             await message.reply("Недостаточно очков морали для увеличения ловкости. Вам нужно как минимум 50 очков.")
 
