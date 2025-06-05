@@ -528,7 +528,7 @@ def save_users(data):
     try:
         with open('users.json', 'w', encoding='utf-8') as file:
             json.dump(data, file, ensure_ascii=False, indent=4)
-        print("Данные успешно сохранены.")
+        print("Данные успешно сохранены...")
     except Exception as e:
         print(f"Ошибка при сохранении данных: {e}")
 

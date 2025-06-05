@@ -2,6 +2,5 @@ build/
 dist/
 venv/
 .idea/
-*.json
 *.spec
 config.ini
