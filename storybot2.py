@@ -9,8 +9,7 @@ import os
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-# token = config['Settings']['token']
-token = "MTIwMTk2MzAwMzU0MTQ1ODk0NA.G_Qk7u.t7HmYkqqNkiySue-ScCpf7jPp7i2XUYGl7hB94"
+token = config['Settings']['token']
 text_channel_story_id = config['Settings']['text_channel_story']
 text_channel_pvp_id = config['Settings']['text_channel_pvp']
 text_channel_story = 0 #Переопределяемый id канала для вывода сообщений
