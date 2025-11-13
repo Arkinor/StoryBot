@@ -1,0 +1,82 @@
+{
+    "users": [
+        {
+            "iddiscord": 229665604372660226,
+            "today": 0,
+            "balansemorale": 999526,
+            "armor": 1,
+            "strong": 1,
+            "health": 106,
+            "health_pvp": 106,
+            "agility": 0,
+            "lucky": 2,
+            "badtry": 2,
+            "canpvp": 0
+        },
+        {
+            "iddiscord": 1201963003541458944,
+            "today": 0,
+            "balansemorale": 1,
+            "armor": 0,
+            "strong": 0,
+            "health": 100,
+            "health_pvp": 100,
+            "agility": 0,
+            "lucky": 0,
+            "badtry": 0,
+            "canpvp": 0
+        },
+        {
+            "iddiscord": 416222566550601739,
+            "today": 0,
+            "balansemorale": 1,
+            "armor": 0,
+            "strong": 0,
+            "health": 100,
+            "health_pvp": 100,
+            "agility": 0,
+            "lucky": 0,
+            "badtry": 0,
+            "canpvp": 0
+        },
+        {
+            "iddiscord": 608659424550191115,
+            "today": 0,
+            "balansemorale": 0,
+            "armor": 0,
+            "strong": 0,
+            "health": 100,
+            "health_pvp": 100,
+            "agility": 0,
+            "lucky": 0,
+            "badtry": 0,
+            "canpvp": 0
+        },
+        {
+            "iddiscord": 318519795425476619,
+            "today": 0,
+            "balansemorale": 0,
+            "armor": 0,
+            "strong": 0,
+            "health": 100,
+            "health_pvp": 100,
+            "agility": 0,
+            "lucky": 0,
+            "badtry": 0,
+            "canpvp": 0
+        },
+        {
+            "iddiscord": 426048246658629654,
+            "today": 0,
+            "balansemorale": 0,
+            "armor": 0,
+            "strong": 0,
+            "health": 100,
+            "health_pvp": 100,
+            "agility": 0,
+            "lucky": 0,
+            "badtry": 0,
+            "canpvp": 0
+        }
+    ]
+}

@@ -309,16 +309,14 @@ async def handle_pvp_command(message):
     💪 **Сила:** {initiator['strong']}
     🛡️ **Броня:** {initiator['armor']}
     🐆 **Ловкость:** {initiator['agility']}
-    🎲 **Удача:** {initiator['lucky']}
     """
-
+    # 🎲 **Удача:** {initiator['lucky']}
     # Детальная информация о защитнике
     consumer_stats = f"""
     ❤️ **Боевой дух:** {consumer['health_pvp']}
     💪 **Сила:** {consumer['strong']}
     🛡️ **Броня:** {consumer['armor']}
     🐆 **Ловкость:** {consumer['agility']}
-    🎲 **Удача:** {consumer['lucky']}
     """
 
     embed.add_field(name=f"⚡ {message.author.display_name}", value=initiator_stats, inline=True)
@@ -489,7 +487,7 @@ async def handle_pvp_command(message):
         inline=False
     )
 
-    final_embed.set_footer(text="Боевой дух восстановлен до максимума!")
+    # final_embed.set_footer(text="Боевой дух восстановлен до максимума!")
 
     await message.channel.send(embed=final_embed)
 
